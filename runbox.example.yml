@@ -1,0 +1,50 @@
+# Runbox Configuration
+# Copy this to runbox.yml and customize
+
+# Server settings
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# Authentication
+# Set RUNBOX_API_KEY environment variable in production
+auth:
+  enabled: true
+  # api_key: "your-secret-key"  # Or use RUNBOX_API_KEY env var
+
+# Container settings
+containers:
+  prefix: "runbox"
+  idle_timeout: 3600 # 1 hour in seconds
+  work_dir: "/app"
+
+# Default resource limits (can be overridden per-request)
+limits:
+  timeout: 30 # seconds
+  memory: "256m"
+  cpu: 0.5
+  output_max: 65536 # bytes (64KB)
+
+# Supported languages and their Docker images
+# Local builds create both runbox/python:3.11 and ghcr.io/anywaye/runbox/python:3.11
+# Production pulls from GHCR if not available locally
+languages:
+  python:
+    image: "ghcr.io/anywaye/runbox/python:3.11"
+    entrypoint_cmd: "python"
+  ruby:
+    image: "ghcr.io/anywaye/runbox/ruby:3.2"
+    entrypoint_cmd: "ruby"
+  shell:
+    image: "ghcr.io/anywaye/runbox/shell:5.2"
+    entrypoint_cmd: "bash"
+
+# Network policy
+network:
+  mode: "allowlist" # "allowlist", "denylist", or "none"
+  default_allowed: [] # Empty = no defaults, each request specifies
+
+# Cleanup worker
+cleanup:
+  enabled: true
+  interval: 300 # Check every 5 minutes
