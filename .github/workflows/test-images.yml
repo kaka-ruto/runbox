@@ -1,0 +1,71 @@
+name: Test Images
+
+on:
+  # Run on PRs that modify image files
+  pull_request:
+    paths:
+      - 'images/**'
+      - 'scripts/**'
+      - '.github/workflows/test-images.yml'
+  
+  # Run on pushes to main
+  push:
+    branches:
+      - main
+    paths:
+      - 'images/**'
+      - 'scripts/**'
+      - '.github/workflows/test-images.yml'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  test-images:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        language: [python, ruby, shell]
+      fail-fast: false  # Continue testing other images even if one fails
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Make scripts executable
+        run: |
+          chmod +x scripts/dev/build.sh
+          chmod +x scripts/dev/test.sh
+          chmod +x scripts/lib/common.sh
+          chmod +x images/*/test.sh
+      
+      - name: Build ${{ matrix.language }} image
+        run: ./scripts/dev/build.sh ${{ matrix.language }}
+      
+      - name: Test ${{ matrix.language }} image
+        run: ./scripts/dev/test.sh ${{ matrix.language }}
+      
+      - name: Image info
+        if: success()
+        run: |
+          echo "### ✅ ${{ matrix.language }} image tests passed" >> $GITHUB_STEP_SUMMARY
+          docker images | grep runbox-${{ matrix.language }} >> $GITHUB_STEP_SUMMARY || true
+      
+      - name: Cleanup
+        if: always()
+        run: docker image prune -f
+
+  test-all:
+    runs-on: ubuntu-latest
+    needs: test-images
+    
+    steps:
+      - name: Summary
+        run: |
+          echo "### 🎉 All image tests passed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All runbox images (python, ruby, shell) have been built and tested successfully." >> $GITHUB_STEP_SUMMARY
