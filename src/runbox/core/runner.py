@@ -233,10 +233,10 @@ class CodeRunner:
             # Use gem to install dependencies
             cmd = ["gem", "install", "--no-document"] + dependencies
         elif language == "shell":
-            # For shell, we might want to use apt-get or apk
-            # For now, just log a warning
-            logger.warning(f"Dependency installation not supported for shell language")
-            return
+            # For shell, use apk (Alpine package manager)
+            # First update the package index, then install
+            # Dependencies should be package names like: curl, jq, git, etc.
+            cmd = ["apk", "add", "--no-cache"] + dependencies
         else:
             logger.warning(f"Unknown language for dependency installation: {language}")
             return

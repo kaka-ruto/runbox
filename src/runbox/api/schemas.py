@@ -107,7 +107,12 @@ class RunRequest(BaseModel):
     )
     new_dependencies: list[str] | None = Field(
         default=None,
-        description="New dependencies to install before running (e.g., ['requests==2.31.0', 'pytest'])",
+        description=(
+            "Optional: New dependencies to install before running. "
+            "Python: ['requests==2.31.0', 'pytest']. "
+            "Ruby: ['rails', 'rspec']. "
+            "Shell: ['curl', 'jq', 'git'] (uses apk)"
+        ),
     )
 
 
