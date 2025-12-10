@@ -1,4 +1,4 @@
-"""Code execution logic for Runbox."""
+"""Code runner for Runbox."""
 
 import asyncio
 import logging
@@ -13,25 +13,25 @@ from runbox.core.container import ContainerManager
 logger = logging.getLogger(__name__)
 
 
-class ExecutionError(Exception):
-    """Error during code execution."""
+class RunError(Exception):
+    """Error during code run."""
     pass
 
 
-class TimeoutError(ExecutionError):
-    """Execution timed out."""
+class TimeoutError(RunError):
+    """Run timed out."""
     pass
 
 
-class CodeExecutor:
-    """Executes code in sandboxed containers."""
+class CodeRunner:
+    """Runs code in sandboxed containers."""
     
     def __init__(self) -> None:
-        """Initialize the executor."""
+        """Initialize the runner."""
         self.settings = get_settings()
         self.container_manager = ContainerManager()
     
-    async def execute(
+    async def run(
         self,
         identifier: str,
         language: str,
@@ -43,13 +43,13 @@ class CodeExecutor:
         network_allow: list[str] | None = None,
     ) -> dict[str, Any]:
         """
-        Execute code in a sandboxed container.
+        Run code in a sandboxed container.
         
         Args:
             identifier: Unique identifier for container reuse
             language: Programming language
             files: List of (path, content) tuples
-            entrypoint: File to execute
+            entrypoint: File to run
             env: Environment variables
             timeout: Execution timeout in seconds
             memory: Memory limit
@@ -78,7 +78,7 @@ class CodeExecutor:
             # Write files to container
             await self._write_files(container, files)
             
-            # Execute code
+            # Run code
             start_time = time.monotonic()
             result = await self._run_code(
                 container=container,
@@ -101,10 +101,10 @@ class CodeExecutor:
             }
             
         except Exception as e:
-            logger.exception(f"Execution failed in {container_name}")
-            raise ExecutionError(f"Execution failed: {str(e)}")
+            logger.exception(f"Run failed in {container_name}")
+            raise RunError(f"Run failed: {str(e)}")
     
-    async def execute_in_container(
+    async def run_in_container(
         self,
         container_id: str,
         files: list[tuple[str, str]],
@@ -113,14 +113,14 @@ class CodeExecutor:
         timeout: int | None = None,
     ) -> dict[str, Any]:
         """
-        Execute code in an existing container (by container_id/name).
+        Run code in an existing container (by container_id/name).
         
-        This is the simplified execution path for containers set up via /setup.
+        This is the simplified run path for containers set up via /setup.
         
         Args:
             container_id: Container name from /setup response
             files: List of (path, content) tuples
-            entrypoint: File to execute
+            entrypoint: File to run
             env: Environment variables
             timeout: Execution timeout in seconds
         
@@ -129,7 +129,7 @@ class CodeExecutor:
         
         Raises:
             ValueError: If container not found
-            ExecutionError: If execution fails
+            RunError: If run fails
         """
         timeout = timeout or self.settings.limits.timeout
         env = env or {}
@@ -149,7 +149,7 @@ class CodeExecutor:
             # Write files to container
             await self._write_files(container, files)
             
-            # Execute code
+            # Run code
             start_time = time.monotonic()
             result = await self._run_code(
                 container=container,
@@ -170,8 +170,8 @@ class CodeExecutor:
             }
             
         except Exception as e:
-            logger.exception(f"Execution failed in {container_id}")
-            raise ExecutionError(f"Execution failed: {str(e)}")
+            logger.exception(f"Run failed in {container_id}")
+            raise RunError(f"Run failed: {str(e)}")
     
     def _extract_language_from_container_name(self, container_name: str) -> str:
         """Extract the language from a container name like 'runbox-myid-python'."""
@@ -320,6 +320,6 @@ class CodeExecutor:
         return await self.container_manager.cleanup_by_identifier(identifier)
     
     async def shutdown(self) -> None:
-        """Shutdown the executor."""
+        """Shutdown the runner."""
         await self.container_manager.shutdown()
 

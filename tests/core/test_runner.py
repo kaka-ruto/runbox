@@ -1,21 +1,21 @@
-"""Tests for code executor - focusing on execution behavior."""
+"""Tests for code runner - focusing on run behavior."""
 
 import pytest
 
 
-class TestCodeExecution:
-    """Tests for code execution behavior."""
+class TestCodeRun:
+    """Tests for code run behavior."""
     
     @pytest.mark.asyncio
-    async def test_executes_simple_python(self):
-        """Executor runs simple Python code."""
-        from runbox.core.executor import CodeExecutor
+    async def test_runs_simple_python(self):
+        """Runner runs simple Python code."""
+        from runbox.core.runner import CodeRunner
         
-        executor = CodeExecutor()
+        runner = CodeRunner()
         
         try:
-            result = await executor.execute(
-                identifier="exec-test-1",
+            result = await runner.run(
+                identifier="run-test-1",
                 language="python",
                 files=[("main.py", "print('hello')")],
                 entrypoint="main.py",
@@ -25,19 +25,19 @@ class TestCodeExecution:
             assert result["exit_code"] == 0
             assert "hello" in result["stdout"]
         finally:
-            await executor.cleanup_containers("exec-test-1")
-            await executor.shutdown()
+            await runner.cleanup_containers("run-test-1")
+            await runner.shutdown()
     
     @pytest.mark.asyncio
     async def test_captures_stderr(self):
-        """Executor captures standard error."""
-        from runbox.core.executor import CodeExecutor
+        """Runner captures standard error."""
+        from runbox.core.runner import CodeRunner
         
-        executor = CodeExecutor()
+        runner = CodeRunner()
         
         try:
-            result = await executor.execute(
-                identifier="exec-test-2",
+            result = await runner.run(
+                identifier="run-test-2",
                 language="python",
                 files=[("main.py", "import sys; sys.stderr.write('error output')")],
                 entrypoint="main.py",
@@ -45,19 +45,19 @@ class TestCodeExecution:
             
             assert "error output" in result["stderr"]
         finally:
-            await executor.cleanup_containers("exec-test-2")
-            await executor.shutdown()
+            await runner.cleanup_containers("run-test-2")
+            await runner.shutdown()
     
     @pytest.mark.asyncio
     async def test_returns_exit_code(self):
-        """Executor returns correct exit code."""
-        from runbox.core.executor import CodeExecutor
+        """Runner returns correct exit code."""
+        from runbox.core.runner import CodeRunner
         
-        executor = CodeExecutor()
+        runner = CodeRunner()
         
         try:
-            result = await executor.execute(
-                identifier="exec-test-3",
+            result = await runner.run(
+                identifier="run-test-3",
                 language="python",
                 files=[("main.py", "import sys; sys.exit(42)")],
                 entrypoint="main.py",
@@ -66,19 +66,19 @@ class TestCodeExecution:
             assert result["success"] is False
             assert result["exit_code"] == 42
         finally:
-            await executor.cleanup_containers("exec-test-3")
-            await executor.shutdown()
+            await runner.cleanup_containers("run-test-3")
+            await runner.shutdown()
     
     @pytest.mark.asyncio
     async def test_handles_multiple_files(self):
-        """Executor handles multiple files."""
-        from runbox.core.executor import CodeExecutor
+        """Runner handles multiple files."""
+        from runbox.core.runner import CodeRunner
         
-        executor = CodeExecutor()
+        runner = CodeRunner()
         
         try:
-            result = await executor.execute(
-                identifier="exec-test-4",
+            result = await runner.run(
+                identifier="run-test-4",
                 language="python",
                 files=[
                     ("helper.py", "def greet(name): return f'Hello, {name}!'"),
@@ -90,19 +90,19 @@ class TestCodeExecution:
             assert result["success"] is True
             assert "Hello, World!" in result["stdout"]
         finally:
-            await executor.cleanup_containers("exec-test-4")
-            await executor.shutdown()
+            await runner.cleanup_containers("run-test-4")
+            await runner.shutdown()
     
     @pytest.mark.asyncio
     async def test_environment_variables(self):
-        """Executor passes environment variables."""
-        from runbox.core.executor import CodeExecutor
+        """Runner passes environment variables."""
+        from runbox.core.runner import CodeRunner
         
-        executor = CodeExecutor()
+        runner = CodeRunner()
         
         try:
-            result = await executor.execute(
-                identifier="exec-test-5",
+            result = await runner.run(
+                identifier="run-test-5",
                 language="python",
                 files=[("main.py", "import os; print(os.environ['MY_VAR'])")],
                 entrypoint="main.py",
@@ -112,8 +112,8 @@ class TestCodeExecution:
             assert result["success"] is True
             assert "test_value" in result["stdout"]
         finally:
-            await executor.cleanup_containers("exec-test-5")
-            await executor.shutdown()
+            await runner.cleanup_containers("run-test-5")
+            await runner.shutdown()
 
 
 class TestContainerReuse:
@@ -121,22 +121,22 @@ class TestContainerReuse:
     
     @pytest.mark.asyncio
     async def test_reuses_container(self):
-        """Executor reuses container for same identifier."""
-        from runbox.core.executor import CodeExecutor
+        """Runner reuses container for same identifier."""
+        from runbox.core.runner import CodeRunner
         
-        executor = CodeExecutor()
+        runner = CodeRunner()
         
         try:
-            # First execution
-            result1 = await executor.execute(
+            # First run
+            result1 = await runner.run(
                 identifier="reuse-test",
                 language="python",
                 files=[("main.py", "print('first')")],
                 entrypoint="main.py",
             )
             
-            # Second execution
-            result2 = await executor.execute(
+            # Second run
+            result2 = await runner.run(
                 identifier="reuse-test",
                 language="python",
                 files=[("main.py", "print('second')")],
@@ -147,27 +147,27 @@ class TestContainerReuse:
             assert result1["cached"] is False
             assert result2["cached"] is True
         finally:
-            await executor.cleanup_containers("reuse-test")
-            await executor.shutdown()
+            await runner.cleanup_containers("reuse-test")
+            await runner.shutdown()
     
     @pytest.mark.asyncio
-    async def test_cleans_files_between_executions(self):
-        """Executor cleans files between executions."""
-        from runbox.core.executor import CodeExecutor
+    async def test_cleans_files_between_runs(self):
+        """Runner cleans files between runs."""
+        from runbox.core.runner import CodeRunner
         
-        executor = CodeExecutor()
+        runner = CodeRunner()
         
         try:
-            # First execution creates a file
-            await executor.execute(
+            # First run creates a file
+            await runner.run(
                 identifier="clean-test",
                 language="python",
                 files=[("main.py", "open('test.txt', 'w').write('data')")],
                 entrypoint="main.py",
             )
             
-            # Second execution should not see that file
-            result = await executor.execute(
+            # Second run should not see that file
+            result = await runner.run(
                 identifier="clean-test",
                 language="python",
                 files=[("main.py", "import os; print(os.path.exists('test.txt'))")],
@@ -176,6 +176,6 @@ class TestContainerReuse:
             
             assert "False" in result["stdout"]
         finally:
-            await executor.cleanup_containers("clean-test")
-            await executor.shutdown()
+            await runner.cleanup_containers("clean-test")
+            await runner.shutdown()
 

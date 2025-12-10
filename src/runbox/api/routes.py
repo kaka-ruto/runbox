@@ -17,24 +17,24 @@ from runbox.api.schemas import (
     SetupResponse,
 )
 from runbox.config import get_settings
-from runbox.core.executor import CodeExecutor
+from runbox.core.runner import CodeRunner
 from runbox.core.introspector import Introspector
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1")
 
-# Executor and introspector instances (initialized on startup)
-_executor: CodeExecutor | None = None
+# Runner and introspector instances (initialized on startup)
+_runner: CodeRunner | None = None
 _introspector: Introspector | None = None
 
 
-def get_executor() -> CodeExecutor:
-    """Get the executor instance."""
-    global _executor
-    if _executor is None:
-        _executor = CodeExecutor()
-    return _executor
+def get_runner() -> CodeRunner:
+    """Get the runner instance."""
+    global _runner
+    if _runner is None:
+        _runner = CodeRunner()
+    return _runner
 
 
 def get_introspector() -> Introspector:
@@ -45,19 +45,19 @@ def get_introspector() -> Introspector:
     return _introspector
 
 
-def init_executor() -> None:
-    """Initialize the executor on startup."""
-    global _executor, _introspector
-    _executor = CodeExecutor()
+def init_runner() -> None:
+    """Initialize the runner on startup."""
+    global _runner, _introspector
+    _runner = CodeRunner()
     _introspector = Introspector()
 
 
-async def shutdown_executor() -> None:
-    """Shutdown the executor gracefully."""
-    global _executor, _introspector
-    if _executor:
-        await _executor.shutdown()
-        _executor = None
+async def shutdown_runner() -> None:
+    """Shutdown the runner gracefully."""
+    global _runner, _introspector
+    if _runner:
+        await _runner.shutdown()
+        _runner = None
     _introspector = None
 
 
@@ -75,7 +75,7 @@ async def shutdown_executor() -> None:
 async def setup_container(
     request: SetupRequest,
     _: bool = Depends(verify_api_key),
-    executor: CodeExecutor = Depends(get_executor),
+    runner: CodeRunner = Depends(get_runner),
     introspector: Introspector = Depends(get_introspector),
 ) -> SetupResponse:
     """Set up a container and return environment snapshot."""
@@ -91,7 +91,7 @@ async def setup_container(
     
     try:
         # Get or create container
-        container, cached = await executor.container_manager.get_or_create(
+        container, cached = await runner.container_manager.get_or_create(
             identifier=request.identifier,
             language=request.language,
             memory=request.memory,
@@ -132,15 +132,15 @@ async def setup_container(
         404: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="Execute code",
-    description="Execute code in a pre-setup container",
+    summary="Run code",
+    description="Run code in a pre-setup container",
 )
 async def run_code(
     request: RunRequest,
     _: bool = Depends(verify_api_key),
-    executor: CodeExecutor = Depends(get_executor),
+    runner: CodeRunner = Depends(get_runner),
 ) -> RunResponse:
-    """Execute code in a container that was set up via /setup."""
+    """Run code in a container that was set up via /setup."""
     # Validate entrypoint exists in files
     file_paths = [f.path for f in request.files]
     if request.entrypoint not in file_paths:
@@ -150,7 +150,7 @@ async def run_code(
         )
     
     try:
-        result = await executor.execute_in_container(
+        result = await runner.run_in_container(
             container_id=request.container_id,
             files=[(f.path, f.content) for f in request.files],
             entrypoint=request.entrypoint,
@@ -165,10 +165,10 @@ async def run_code(
             detail=str(e),
         )
     except Exception as e:
-        logger.exception("Execution failed")
+        logger.exception("Run failed")
         raise HTTPException(
             status_code=500,
-            detail=f"Execution failed: {str(e)}",
+            detail=f"Run failed: {str(e)}",
         )
 
 
@@ -185,11 +185,11 @@ async def run_code(
 async def delete_containers(
     identifier: str,
     _: bool = Depends(verify_api_key),
-    executor: CodeExecutor = Depends(get_executor),
+    runner: CodeRunner = Depends(get_runner),
 ) -> ContainerDeleteResponse:
     """Delete all containers for an identifier."""
     try:
-        deleted = await executor.cleanup_containers(identifier)
+        deleted = await runner.cleanup_containers(identifier)
         return ContainerDeleteResponse(deleted=deleted)
     except Exception as e:
         logger.exception("Failed to delete containers")

@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from runbox import __version__
-from runbox.api.routes import router, init_executor, shutdown_executor, get_executor
+from runbox.api.routes import router, init_runner, shutdown_runner, get_runner
 from runbox.config import init_settings, get_settings
 from runbox.core.cleanup import CleanupWorker
 from runbox.utils.docker import check_docker_connection
@@ -43,12 +43,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error("Docker is not available. Please ensure Docker is running.")
         raise RuntimeError("Docker not available")
     
-    # Initialize executor
-    init_executor()
+    # Initialize runner
+    init_runner()
     
     # Start cleanup worker
-    executor = get_executor()
-    _cleanup_worker = CleanupWorker(executor.container_manager)
+    runner = get_runner()
+    _cleanup_worker = CleanupWorker(runner.container_manager)
     await _cleanup_worker.start()
     
     logger.info("Runbox started successfully")
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if _cleanup_worker:
         await _cleanup_worker.stop()
     
-    await shutdown_executor()
+    await shutdown_runner()
     
     logger.info("Runbox shutdown complete")
 
