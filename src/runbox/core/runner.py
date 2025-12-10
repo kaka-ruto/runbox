@@ -152,7 +152,9 @@ class CodeRunner:
                 # Get updated package list
                 from runbox.core.introspector import Introspector
                 introspector = Introspector()
-                packages = await introspector.get_packages(container, language)
+                env_snapshot = await introspector.get_environment_snapshot(container, language)
+                packages = env_snapshot.packages
+
             
             # Clean working directory
             await self._clean_workdir(container)
