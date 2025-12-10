@@ -123,6 +123,45 @@ Response:
 }
 ```
 
+### Installing Dependencies On-The-Fly
+
+Install new dependencies before running code:
+
+```bash
+curl -X POST http://localhost:8080/v1/run \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "container_id": "runbox-my-session-python",
+    "files": [{"path": "main.py", "content": "import requests; print(requests.__version__)"}],
+    "entrypoint": "main.py",
+    "new_dependencies": ["requests==2.31.0", "pytest"]
+  }'
+```
+
+Response includes updated package list:
+
+```json
+{
+  "success": true,
+  "exit_code": 0,
+  "stdout": "2.31.0\n",
+  "stderr": "",
+  "execution_time_ms": 1234,
+  "timeout_exceeded": false,
+  "packages": {
+    "pip": "23.0.1",
+    "requests": "2.31.0",
+    "pytest": "7.4.0"
+  }
+}
+```
+
+**Supported package managers:**
+- Python: `pip install --no-cache-dir`
+- Ruby: `gem install --no-document`
+- Shell: `apk add --no-cache`
+
 ## Documentation
 
 - [Getting Started](docs/getting-started.md)
