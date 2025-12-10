@@ -111,6 +111,7 @@ class CodeRunner:
         entrypoint: str,
         env: dict[str, str] | None = None,
         timeout: int | None = None,
+        new_dependencies: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Run code in an existing container (by container_id/name).
@@ -123,9 +124,10 @@ class CodeRunner:
             entrypoint: File to run
             env: Environment variables
             timeout: Execution timeout in seconds
+            new_dependencies: New dependencies to install before running
         
         Returns:
-            Execution result dictionary
+            Execution result dictionary (includes 'packages' if new_dependencies were installed)
         
         Raises:
             ValueError: If container not found
@@ -143,6 +145,15 @@ class CodeRunner:
         language = self._extract_language_from_container_name(container_id)
         
         try:
+            # Install new dependencies if provided
+            packages = None
+            if new_dependencies:
+                await self._install_dependencies(container, language, new_dependencies)
+                # Get updated package list
+                from runbox.core.introspector import Introspector
+                introspector = Introspector()
+                packages = await introspector.get_packages(container, language)
+            
             # Clean working directory
             await self._clean_workdir(container)
             
@@ -160,7 +171,7 @@ class CodeRunner:
             )
             execution_time_ms = int((time.monotonic() - start_time) * 1000)
             
-            return {
+            response = {
                 "success": result["exit_code"] == 0 and not result.get("timeout", False),
                 "exit_code": result["exit_code"],
                 "stdout": self._truncate_output(result["stdout"]),
@@ -168,6 +179,12 @@ class CodeRunner:
                 "execution_time_ms": execution_time_ms,
                 "timeout_exceeded": result.get("timeout", False),
             }
+            
+            # Only include packages if dependencies were installed
+            if packages is not None:
+                response["packages"] = packages
+            
+            return response
             
         except Exception as e:
             logger.exception(f"Run failed in {container_id}")
@@ -193,6 +210,53 @@ class CodeRunner:
                 user="root",
             ),
         )
+    
+    async def _install_dependencies(
+        self,
+        container: Container,
+        language: str,
+        dependencies: list[str],
+    ) -> None:
+        """Install new dependencies in the container."""
+        if not dependencies:
+            return
+        
+        logger.info(f"Installing {len(dependencies)} dependencies in {container.name}")
+        
+        loop = asyncio.get_event_loop()
+        
+        # Build install command based on language
+        if language == "python":
+            # Use pip to install dependencies
+            cmd = ["pip", "install", "--no-cache-dir"] + dependencies
+        elif language == "ruby":
+            # Use gem to install dependencies
+            cmd = ["gem", "install", "--no-document"] + dependencies
+        elif language == "shell":
+            # For shell, we might want to use apt-get or apk
+            # For now, just log a warning
+            logger.warning(f"Dependency installation not supported for shell language")
+            return
+        else:
+            logger.warning(f"Unknown language for dependency installation: {language}")
+            return
+        
+        def install():
+            result = container.exec_run(
+                cmd,
+                user="root",  # Need root to install packages
+            )
+            return result
+        
+        result = await loop.run_in_executor(None, install)
+        
+        if result.exit_code != 0:
+            error_msg = result.output.decode("utf-8", errors="replace") if result.output else "Unknown error"
+            logger.error(f"Failed to install dependencies: {error_msg}")
+            raise RunError(f"Failed to install dependencies: {error_msg}")
+        
+        logger.info(f"Successfully installed dependencies in {container.name}")
+
     
     async def _write_files(
         self,

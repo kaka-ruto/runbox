@@ -105,6 +105,10 @@ class RunRequest(BaseModel):
         ge=1,
         le=300,
     )
+    new_dependencies: list[str] | None = Field(
+        default=None,
+        description="New dependencies to install before running (e.g., ['requests==2.31.0', 'pytest'])",
+    )
 
 
 class RunResponse(BaseModel):
@@ -116,6 +120,10 @@ class RunResponse(BaseModel):
     stderr: str = Field(..., description="Standard error")
     execution_time_ms: int = Field(..., description="Execution time in milliseconds")
     timeout_exceeded: bool = Field(default=False, description="Whether execution timed out")
+    packages: dict[str, str] | None = Field(
+        default=None,
+        description="Updated package list (only included if new_dependencies were installed)",
+    )
 
 
 # =============================================================================

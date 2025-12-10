@@ -156,6 +156,7 @@ async def run_code(
             entrypoint=request.entrypoint,
             env=request.env,
             timeout=request.timeout,
+            new_dependencies=request.new_dependencies,
         )
         return RunResponse(**result)
     except ValueError as e:
