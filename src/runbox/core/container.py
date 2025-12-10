@@ -103,6 +103,29 @@ class ContainerManager:
             logger.info(f"Created new container: {name}")
             return container, False
     
+    async def get_by_name(self, name: str) -> Container | None:
+        """
+        Get a container by its name.
+        
+        Args:
+            name: Container name (e.g., 'runbox-myid-python')
+            
+        Returns:
+            Container if found and running, None otherwise.
+        """
+        try:
+            container = self.client.containers.get(name)
+            if container.status != "running":
+                container.start()
+            
+            # Update last used time if tracked
+            if name in self._containers:
+                self._containers[name].last_used_at = datetime.now(timezone.utc)
+            
+            return container
+        except NotFound:
+            return None
+    
     async def _create_container(
         self,
         name: str,

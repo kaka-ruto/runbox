@@ -10,8 +10,13 @@ class FileInput(BaseModel):
     content: str = Field(..., description="File content")
 
 
-class RunRequest(BaseModel):
-    """Request to execute code."""
+# =============================================================================
+# Setup Endpoint Schemas
+# =============================================================================
+
+
+class SetupRequest(BaseModel):
+    """Request to set up a container environment."""
 
     identifier: str = Field(
         ...,
@@ -23,22 +28,13 @@ class RunRequest(BaseModel):
         ...,
         description="Programming language (python, ruby, shell)",
     )
-    files: list[FileInput] = Field(
-        ...,
-        description="Files to write before execution",
-        min_length=1,
-    )
-    entrypoint: str = Field(
-        ...,
-        description="File to execute",
-    )
     env: dict[str, str] = Field(
         default_factory=dict,
-        description="Environment variables to set",
+        description="Environment variables to set in the container",
     )
     timeout: int | None = Field(
         default=None,
-        description="Execution timeout in seconds (default: 30)",
+        description="Default execution timeout in seconds",
         ge=1,
         le=300,
     )
@@ -52,6 +48,65 @@ class RunRequest(BaseModel):
     )
 
 
+class EnvironmentSnapshot(BaseModel):
+    """Snapshot of the container environment."""
+
+    os_name: str = Field(..., description="Operating system name (e.g., 'debian', 'alpine')")
+    os_version: str = Field(..., description="Operating system version")
+    runtime_name: str = Field(..., description="Runtime name (e.g., 'python', 'ruby', 'bash')")
+    runtime_version: str = Field(..., description="Runtime version (e.g., '3.11.6')")
+    packages: dict[str, str] = Field(
+        ...,
+        description="Installed packages with versions (e.g., {'requests': '2.31.0'})",
+    )
+
+
+class SetupResponse(BaseModel):
+    """Response from container setup."""
+
+    container_id: str = Field(..., description="Container identifier for use in /run")
+    cached: bool = Field(..., description="Whether an existing container was reused")
+    environment_snapshot: EnvironmentSnapshot = Field(
+        ...,
+        description="Snapshot of the container's environment",
+    )
+
+
+# =============================================================================
+# Run Endpoint Schemas
+# =============================================================================
+
+
+class RunRequest(BaseModel):
+    """Request to execute code in a pre-setup container."""
+
+    container_id: str = Field(
+        ...,
+        description="Container ID from /setup response",
+        min_length=1,
+        max_length=256,
+    )
+    files: list[FileInput] = Field(
+        ...,
+        description="Files to write before execution",
+        min_length=1,
+    )
+    entrypoint: str = Field(
+        ...,
+        description="File to execute",
+    )
+    env: dict[str, str] = Field(
+        default_factory=dict,
+        description="Runtime environment variables (merged with setup env)",
+    )
+    timeout: int | None = Field(
+        default=None,
+        description="Execution timeout in seconds (overrides setup timeout)",
+        ge=1,
+        le=300,
+    )
+
+
 class RunResponse(BaseModel):
     """Response from code execution."""
 
@@ -60,9 +115,12 @@ class RunResponse(BaseModel):
     stdout: str = Field(..., description="Standard output")
     stderr: str = Field(..., description="Standard error")
     execution_time_ms: int = Field(..., description="Execution time in milliseconds")
-    container_id: str = Field(..., description="Container identifier")
-    cached: bool = Field(..., description="Whether container was reused")
     timeout_exceeded: bool = Field(default=False, description="Whether execution timed out")
+
+
+# =============================================================================
+# Common Schemas
+# =============================================================================
 
 
 class ErrorResponse(BaseModel):

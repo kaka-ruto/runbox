@@ -104,6 +104,83 @@ class CodeExecutor:
             logger.exception(f"Execution failed in {container_name}")
             raise ExecutionError(f"Execution failed: {str(e)}")
     
+    async def execute_in_container(
+        self,
+        container_id: str,
+        files: list[tuple[str, str]],
+        entrypoint: str,
+        env: dict[str, str] | None = None,
+        timeout: int | None = None,
+    ) -> dict[str, Any]:
+        """
+        Execute code in an existing container (by container_id/name).
+        
+        This is the simplified execution path for containers set up via /setup.
+        
+        Args:
+            container_id: Container name from /setup response
+            files: List of (path, content) tuples
+            entrypoint: File to execute
+            env: Environment variables
+            timeout: Execution timeout in seconds
+        
+        Returns:
+            Execution result dictionary
+        
+        Raises:
+            ValueError: If container not found
+            ExecutionError: If execution fails
+        """
+        timeout = timeout or self.settings.limits.timeout
+        env = env or {}
+        
+        # Get the container by name
+        container = await self.container_manager.get_by_name(container_id)
+        if container is None:
+            raise ValueError(f"Container not found: {container_id}. Did you call /setup first?")
+        
+        # Determine language from container name (format: runbox-{id}-{language})
+        language = self._extract_language_from_container_name(container_id)
+        
+        try:
+            # Clean working directory
+            await self._clean_workdir(container)
+            
+            # Write files to container
+            await self._write_files(container, files)
+            
+            # Execute code
+            start_time = time.monotonic()
+            result = await self._run_code(
+                container=container,
+                language=language,
+                entrypoint=entrypoint,
+                env=env,
+                timeout=timeout,
+            )
+            execution_time_ms = int((time.monotonic() - start_time) * 1000)
+            
+            return {
+                "success": result["exit_code"] == 0 and not result.get("timeout", False),
+                "exit_code": result["exit_code"],
+                "stdout": self._truncate_output(result["stdout"]),
+                "stderr": self._truncate_output(result["stderr"]),
+                "execution_time_ms": execution_time_ms,
+                "timeout_exceeded": result.get("timeout", False),
+            }
+            
+        except Exception as e:
+            logger.exception(f"Execution failed in {container_id}")
+            raise ExecutionError(f"Execution failed: {str(e)}")
+    
+    def _extract_language_from_container_name(self, container_name: str) -> str:
+        """Extract the language from a container name like 'runbox-myid-python'."""
+        parts = container_name.rsplit("-", 1)
+        if len(parts) == 2:
+            return parts[1]
+        # Fallback - shouldn't happen with well-formed names
+        return "python"
+    
     async def _clean_workdir(self, container: Container) -> None:
         """Clean the working directory in the container."""
         workdir = self.settings.containers.work_dir

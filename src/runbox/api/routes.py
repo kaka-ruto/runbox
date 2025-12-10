@@ -8,20 +8,25 @@ from runbox import __version__
 from runbox.api.auth import verify_api_key
 from runbox.api.schemas import (
     ContainerDeleteResponse,
+    EnvironmentSnapshot,
     ErrorResponse,
     HealthResponse,
     RunRequest,
     RunResponse,
+    SetupRequest,
+    SetupResponse,
 )
 from runbox.config import get_settings
 from runbox.core.executor import CodeExecutor
+from runbox.core.introspector import Introspector
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1")
 
-# Executor instance (initialized on startup)
+# Executor and introspector instances (initialized on startup)
 _executor: CodeExecutor | None = None
+_introspector: Introspector | None = None
 
 
 def get_executor() -> CodeExecutor:
@@ -32,37 +37,48 @@ def get_executor() -> CodeExecutor:
     return _executor
 
 
+def get_introspector() -> Introspector:
+    """Get the introspector instance."""
+    global _introspector
+    if _introspector is None:
+        _introspector = Introspector()
+    return _introspector
+
+
 def init_executor() -> None:
     """Initialize the executor on startup."""
-    global _executor
+    global _executor, _introspector
     _executor = CodeExecutor()
+    _introspector = Introspector()
 
 
 async def shutdown_executor() -> None:
     """Shutdown the executor gracefully."""
-    global _executor
+    global _executor, _introspector
     if _executor:
         await _executor.shutdown()
         _executor = None
+    _introspector = None
 
 
 @router.post(
-    "/run",
-    response_model=RunResponse,
+    "/setup",
+    response_model=SetupResponse,
     responses={
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="Execute code",
-    description="Execute code in an isolated container",
+    summary="Set up container",
+    description="Create or reuse a container and return environment information",
 )
-async def run_code(
-    request: RunRequest,
+async def setup_container(
+    request: SetupRequest,
     _: bool = Depends(verify_api_key),
     executor: CodeExecutor = Depends(get_executor),
-) -> RunResponse:
-    """Execute code in a sandboxed container."""
+    introspector: Introspector = Depends(get_introspector),
+) -> SetupResponse:
+    """Set up a container and return environment snapshot."""
     settings = get_settings()
     
     # Validate language
@@ -73,6 +89,58 @@ async def run_code(
                    f"Supported: {list(settings.languages.keys())}",
         )
     
+    try:
+        # Get or create container
+        container, cached = await executor.container_manager.get_or_create(
+            identifier=request.identifier,
+            language=request.language,
+            memory=request.memory,
+            network_allow=request.network_allow,
+        )
+        
+        # Get environment snapshot
+        env_snapshot = await introspector.get_environment_snapshot(
+            container=container,
+            language=request.language,
+        )
+        
+        return SetupResponse(
+            container_id=container.name,
+            cached=cached,
+            environment_snapshot=EnvironmentSnapshot(
+                os_name=env_snapshot.os_name,
+                os_version=env_snapshot.os_version,
+                runtime_name=env_snapshot.runtime_name,
+                runtime_version=env_snapshot.runtime_version,
+                packages=env_snapshot.packages,
+            ),
+        )
+    except Exception as e:
+        logger.exception("Setup failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Setup failed: {str(e)}",
+        )
+
+
+@router.post(
+    "/run",
+    response_model=RunResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+    summary="Execute code",
+    description="Execute code in a pre-setup container",
+)
+async def run_code(
+    request: RunRequest,
+    _: bool = Depends(verify_api_key),
+    executor: CodeExecutor = Depends(get_executor),
+) -> RunResponse:
+    """Execute code in a container that was set up via /setup."""
     # Validate entrypoint exists in files
     file_paths = [f.path for f in request.files]
     if request.entrypoint not in file_paths:
@@ -82,17 +150,20 @@ async def run_code(
         )
     
     try:
-        result = await executor.execute(
-            identifier=request.identifier,
-            language=request.language,
+        result = await executor.execute_in_container(
+            container_id=request.container_id,
             files=[(f.path, f.content) for f in request.files],
             entrypoint=request.entrypoint,
             env=request.env,
             timeout=request.timeout,
-            memory=request.memory,
-            network_allow=request.network_allow,
         )
         return RunResponse(**result)
+    except ValueError as e:
+        # Container not found
+        raise HTTPException(
+            status_code=404,
+            detail=str(e),
+        )
     except Exception as e:
         logger.exception("Execution failed")
         raise HTTPException(
@@ -140,3 +211,4 @@ async def health_check() -> HealthResponse:
         status="healthy",
         version=__version__,
     )
+
