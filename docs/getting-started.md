@@ -29,15 +29,28 @@ cp runbox.example.yml runbox.yml
 docker-compose up -d
 ```
 
-4. **Test it**
+4. **Set up a container**
+
+```bash
+curl -X POST http://localhost:8080/v1/setup \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "identifier": "my-session",
+    "language": "python"
+  }'
+```
+
+This returns a `container_id` and an `environment_snapshot` showing what OS, runtime version, and packages are available.
+
+5. **Run some code**
 
 ```bash
 curl -X POST http://localhost:8080/v1/run \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-api-key" \
   -d '{
-    "identifier": "my-session",
-    "language": "python",
+    "container_id": "runbox-my-session-python",
     "files": [{"path": "main.py", "content": "print(\"Hello, Runbox!\")"}],
     "entrypoint": "main.py"
   }'

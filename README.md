@@ -14,6 +14,7 @@ A fast, secure, and simple API for running code in isolated containers.
 - 🌐 **Multi-language**: Python, Ruby, Shell out of the box
 - ⚙️ **Configurable**: Timeouts, memory limits, network policies per request
 - 🧹 **Self-cleaning**: Automatic cleanup of idle containers
+- 🔍 **Environment Introspection**: Get OS, runtime, and package info before running code
 
 ## Development Setup
 
@@ -30,7 +31,7 @@ cd runbox
 
 # Create and activate virtual environment
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\\Scripts\\activate
 
 # Install dependencies
 pip install -e ".[dev]"
@@ -43,7 +44,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 
 # Run specific test file
-pytest tests/core/test_executor.py -v
+pytest tests/core/test_runner.py -v
 
 # Run with coverage
 pytest tests/ --cov=src/runbox --cov-report=html
@@ -60,15 +61,50 @@ cp runbox.example.yml runbox.yml
 docker-compose up
 ```
 
-### Run Some Code
+### Step 1: Set Up a Container
+
+First, call `/setup` to create a container and get environment info:
+
+```bash
+curl -X POST http://localhost:8080/v1/setup \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "identifier": "my-session",
+    "language": "python"
+  }'
+```
+
+Response:
+
+```json
+{
+  "container_id": "runbox-my-session-python",
+  "cached": false,
+  "environment_snapshot": {
+    "os_name": "debian",
+    "os_version": "12",
+    "runtime_name": "python",
+    "runtime_version": "3.11.6",
+    "packages": {
+      "pip": "23.0.1",
+      "requests": "2.31.0",
+      "pytest": "8.0.0"
+    }
+  }
+}
+```
+
+### Step 2: Run Code
+
+Then, use the `container_id` to run code:
 
 ```bash
 curl -X POST http://localhost:8080/v1/run \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-api-key" \
   -d '{
-    "identifier": "my-session",
-    "language": "python",
+    "container_id": "runbox-my-session-python",
     "files": [{"path": "main.py", "content": "print(\"Hello, Runbox!\")"}],
     "entrypoint": "main.py"
   }'
@@ -83,8 +119,7 @@ Response:
   "stdout": "Hello, Runbox!\n",
   "stderr": "",
   "execution_time_ms": 45,
-  "container_id": "runbox-my-session-python",
-  "cached": false
+  "timeout_exceeded": false
 }
 ```
 
