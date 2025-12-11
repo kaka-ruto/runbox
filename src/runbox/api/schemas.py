@@ -1,6 +1,6 @@
 """Pydantic schemas for API request/response models."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class FileInput(BaseModel):
@@ -91,9 +91,9 @@ class RunRequest(BaseModel):
         description="Files to write before execution",
         min_length=1,
     )
-    entrypoint: str = Field(
+    run_command: str = Field(
         ...,
-        description="File to execute",
+        description="Command to execute (e.g., 'python app.py', 'pytest test.py')",
     )
     env: dict[str, str] = Field(
         default_factory=dict,

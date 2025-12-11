@@ -141,19 +141,11 @@ async def run_code(
     runner: CodeRunner = Depends(get_runner),
 ) -> RunResponse:
     """Run code in a container that was set up via /setup."""
-    # Validate entrypoint exists in files
-    file_paths = [f.path for f in request.files]
-    if request.entrypoint not in file_paths:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Entrypoint '{request.entrypoint}' not found in files: {file_paths}",
-        )
-    
     try:
         result = await runner.run_in_container(
             container_id=request.container_id,
             files=[(f.path, f.content) for f in request.files],
-            entrypoint=request.entrypoint,
+            run_command=request.run_command,
             env=request.env,
             timeout=request.timeout,
             new_dependencies=request.new_dependencies,

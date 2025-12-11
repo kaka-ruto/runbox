@@ -36,7 +36,7 @@ class CodeRunner:
         identifier: str,
         language: str,
         files: list[tuple[str, str]],
-        entrypoint: str,
+        run_command: str,
         env: dict[str, str] | None = None,
         timeout: int | None = None,
         memory: str | None = None,
@@ -49,7 +49,7 @@ class CodeRunner:
             identifier: Unique identifier for container reuse
             language: Programming language
             files: List of (path, content) tuples
-            entrypoint: File to run
+            run_command: Command to execute
             env: Environment variables
             timeout: Execution timeout in seconds
             memory: Memory limit
@@ -82,8 +82,7 @@ class CodeRunner:
             start_time = time.monotonic()
             result = await self._run_code(
                 container=container,
-                language=language,
-                entrypoint=entrypoint,
+                run_command=run_command,
                 env=env,
                 timeout=timeout,
             )
@@ -108,7 +107,7 @@ class CodeRunner:
         self,
         container_id: str,
         files: list[tuple[str, str]],
-        entrypoint: str,
+        run_command: str,
         env: dict[str, str] | None = None,
         timeout: int | None = None,
         new_dependencies: list[str] | None = None,
@@ -121,7 +120,7 @@ class CodeRunner:
         Args:
             container_id: Container name from /setup response
             files: List of (path, content) tuples
-            entrypoint: File to run
+            run_command: Command to execute
             env: Environment variables
             timeout: Execution timeout in seconds
             new_dependencies: New dependencies to install before running
@@ -166,8 +165,7 @@ class CodeRunner:
             start_time = time.monotonic()
             result = await self._run_code(
                 container=container,
-                language=language,
-                entrypoint=entrypoint,
+                run_command=run_command,
                 env=env,
                 timeout=timeout,
             )
@@ -296,17 +294,15 @@ class CodeRunner:
     async def _run_code(
         self,
         container: Container,
-        language: str,
-        entrypoint: str,
+        run_command: str,
         env: dict[str, str],
         timeout: int,
     ) -> dict[str, Any]:
         """Run code in the container with timeout."""
-        language_config = self.settings.languages[language]
         workdir = self.settings.containers.work_dir
         
-        # Build command
-        cmd = [language_config.entrypoint_cmd, f"{workdir}/{entrypoint}"]
+        # Build command using shell to support full features
+        cmd = ["sh", "-c", run_command]
         
         loop = asyncio.get_event_loop()
         

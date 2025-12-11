@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2025-12-11
+
+### Breaking Changes
+
+- **Renamed `entrypoint` to `run_command`** in `/v1/run` endpoint.
+  - The `entrypoint` parameter (file path) is removed.
+  - New `run_command` parameter accepts a full shell command string.
+  - Example: `run_command="python main.py"` instead of `entrypoint="main.py"`.
+
+### Added
+
+- **`run_command` support**: Execute arbitrary shell commands (e.g. `pytest tests/`, `bundle exec rails test`).
+
+## [1.1.0] - 2025-12-10
 
 ### Added
 

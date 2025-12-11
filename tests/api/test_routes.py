@@ -270,7 +270,7 @@ class TestRunEndpoint:
             json={
                 "container_id": python_container,
                 "files": python_hello_files,
-                "entrypoint": "main.py",
+                "run_command": "python main.py",
             },
         )
         
@@ -290,7 +290,7 @@ class TestRunEndpoint:
             json={
                 "container_id": python_container,
                 "files": python_hello_files,
-                "entrypoint": "main.py",
+                "run_command": "python main.py",
             },
         )
         
@@ -314,7 +314,7 @@ class TestRunEndpoint:
             json={
                 "container_id": python_container,
                 "files": [{"path": "main.py", "content": "print('Run 1')"}],
-                "entrypoint": "main.py",
+                "run_command": "python main.py",
             },
         )
         assert response1.status_code == 200
@@ -327,7 +327,7 @@ class TestRunEndpoint:
             json={
                 "container_id": python_container,
                 "files": [{"path": "main.py", "content": "print('Run 2')"}],
-                "entrypoint": "main.py",
+                "run_command": "python main.py",
             },
         )
         assert response2.status_code == 200
@@ -347,7 +347,7 @@ class TestRunEndpoint:
             json={
                 "container_id": python_container,
                 "files": python_with_env_files,
-                "entrypoint": "main.py",
+                "run_command": "python main.py",
                 "env": {"TEST_VAR": "secret_value"},
             },
         )
@@ -371,7 +371,7 @@ class TestRunEndpoint:
             json={
                 "container_id": python_container,
                 "files": python_error_files,
-                "entrypoint": "main.py",
+                "run_command": "python main.py",
             },
         )
         
@@ -395,7 +395,7 @@ class TestRunEndpoint:
             json={
                 "container_id": python_container,
                 "files": python_timeout_files,
-                "entrypoint": "main.py",
+                "run_command": "python main.py",
                 "timeout": 2,
             },
         )
@@ -406,25 +406,7 @@ class TestRunEndpoint:
         assert data["timeout_exceeded"] is True
         assert data["execution_time_ms"] < 5000  # Should stop around 2s
     
-    def test_rejects_missing_entrypoint(
-        self,
-        client: TestClient,
-        auth_headers: dict[str, str],
-        python_container: str,
-    ):
-        """Run endpoint rejects when entrypoint not in files."""
-        response = client.post(
-            "/v1/run",
-            headers=auth_headers,
-            json={
-                "container_id": python_container,
-                "files": [{"path": "other.py", "content": "print('hi')"}],
-                "entrypoint": "main.py",
-            },
-        )
-        
-        assert response.status_code == 400
-        assert "not found in files" in response.json()["detail"]
+
     
     def test_returns_404_for_unknown_container(
         self,
@@ -438,7 +420,7 @@ class TestRunEndpoint:
             json={
                 "container_id": "runbox-nonexistent-python",
                 "files": [{"path": "main.py", "content": "print('hi')"}],
-                "entrypoint": "main.py",
+                "run_command": "python main.py",
             },
         )
         
@@ -485,7 +467,7 @@ class TestRunEndpointRuby:
             json={
                 "container_id": ruby_container,
                 "files": ruby_hello_files,
-                "entrypoint": "main.rb",
+                "run_command": "ruby main.rb",
             },
         )
         
@@ -534,7 +516,7 @@ class TestRunEndpointShell:
             json={
                 "container_id": shell_container,
                 "files": shell_hello_files,
-                "entrypoint": "main.sh",
+                "run_command": "sh main.sh",
             },
         )
         

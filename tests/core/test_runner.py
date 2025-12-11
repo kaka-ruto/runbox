@@ -18,7 +18,7 @@ class TestCodeRun:
                 identifier="run-test-1",
                 language="python",
                 files=[("main.py", "print('hello')")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             assert result["success"] is True
@@ -40,7 +40,7 @@ class TestCodeRun:
                 identifier="run-test-2",
                 language="python",
                 files=[("main.py", "import sys; sys.stderr.write('error output')")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             assert "error output" in result["stderr"]
@@ -60,7 +60,7 @@ class TestCodeRun:
                 identifier="run-test-3",
                 language="python",
                 files=[("main.py", "import sys; sys.exit(42)")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             assert result["success"] is False
@@ -84,7 +84,7 @@ class TestCodeRun:
                     ("helper.py", "def greet(name): return f'Hello, {name}!'"),
                     ("main.py", "from helper import greet; print(greet('World'))"),
                 ],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             assert result["success"] is True
@@ -105,7 +105,7 @@ class TestCodeRun:
                 identifier="run-test-5",
                 language="python",
                 files=[("main.py", "import os; print(os.environ.get('TEST_VAR', 'not found'))")],
-                entrypoint="main.py",
+                run_command="python main.py",
                 env={"TEST_VAR": "test_value"},
             )
             
@@ -130,14 +130,14 @@ class TestContainerReuse:
                 identifier="reuse-test",
                 language="python",
                 files=[("main.py", "print('first')")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             result2 = await runner.run(
                 identifier="reuse-test",
                 language="python",
                 files=[("main.py", "print('second')")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             assert result1["container_id"] == result2["container_id"]
@@ -160,7 +160,7 @@ class TestContainerReuse:
                 identifier="clean-test",
                 language="python",
                 files=[("main.py", "open('test.txt', 'w').write('data')")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             # Second run should not see that file
@@ -168,7 +168,7 @@ class TestContainerReuse:
                 identifier="clean-test",
                 language="python",
                 files=[("main.py", "import os; print(os.path.exists('test.txt'))")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             assert "False" in result["stdout"]
@@ -199,7 +199,7 @@ class TestDependencyInstallation:
             result = await runner.run_in_container(
                 container_id=container_id,
                 files=[("main.py", "import requests; print(requests.__version__)")],
-                entrypoint="main.py",
+                run_command="python main.py",
                 new_dependencies=["requests==2.31.0"],
             )
             
@@ -234,7 +234,7 @@ class TestDependencyInstallation:
             result = await runner.run_in_container(
                 container_id=container_id,
                 files=[("main.rb", "require 'rake'; puts Rake::VERSION")],
-                entrypoint="main.rb",
+                run_command="ruby main.rb",
                 new_dependencies=["rake"],
             )
             
@@ -268,7 +268,7 @@ class TestDependencyInstallation:
             result = await runner.run_in_container(
                 container_id=container_id,
                 files=[("main.sh", "#!/bin/sh\ncurl --version | head -n1")],
-                entrypoint="main.sh",
+                run_command="sh main.sh",
                 new_dependencies=["curl"],
             )
             
@@ -301,7 +301,7 @@ class TestDependencyInstallation:
             result = await runner.run_in_container(
                 container_id=container_id,
                 files=[("main.py", "print('hello')")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
             
             # Should succeed
@@ -333,7 +333,7 @@ class TestDependencyInstallation:
                 await runner.run_in_container(
                     container_id=container_id,
                     files=[("main.py", "print('hello')")],
-                    entrypoint="main.py",
+                    run_command="python main.py",
                     new_dependencies=["this-package-does-not-exist-12345"],
                 )
             
@@ -361,7 +361,7 @@ class TestDependencyInstallation:
             result1 = await runner.run_in_container(
                 container_id=container_id,
                 files=[("main.py", "import requests; print('installed')")],
-                entrypoint="main.py",
+                run_command="python main.py",
                 new_dependencies=["requests==2.31.0"],
             )
             
@@ -372,7 +372,7 @@ class TestDependencyInstallation:
             result2 = await runner.run_in_container(
                 container_id=container_id,
                 files=[("main.py", "import requests; print(requests.__version__)")],
-                entrypoint="main.py",
+                run_command="python main.py",
                 # No new_dependencies this time
             )
             

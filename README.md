@@ -106,7 +106,7 @@ curl -X POST http://localhost:8080/v1/run \
   -d '{
     "container_id": "runbox-my-session-python",
     "files": [{"path": "main.py", "content": "print(\"Hello, Runbox!\")"}],
-    "entrypoint": "main.py"
+    "run_command": "python main.py"
   }'
 ```
 
@@ -134,7 +134,7 @@ curl -X POST http://localhost:8080/v1/run \
   -d '{
     "container_id": "runbox-my-session-python",
     "files": [{"path": "main.py", "content": "import requests; print(requests.__version__)"}],
-    "entrypoint": "main.py",
+    "run_command": "python main.py",
     "new_dependencies": ["requests==2.31.0", "pytest"]
   }'
 ```
