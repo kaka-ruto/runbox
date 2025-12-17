@@ -43,35 +43,17 @@ detect_platform() {
     esac
 }
 
-# Get image version from Dockerfile or VERSION file
+# Get image version from VERSION file
 get_image_version() {
     local language=$1
-    local dockerfile="images/$language/Dockerfile"
-    local version_file="images/shell/VERSION"
+    local version_file="images/$language/VERSION"
     
-    case "$language" in
-        python)
-            # Extract from: FROM python:3.11-slim
-            grep "^FROM python:" "$dockerfile" | sed -E 's/FROM python:([0-9]+\.[0-9]+).*/\1/'
-            ;;
-        ruby)
-            # Extract from: FROM ruby:3.4-slim
-            grep "^FROM ruby:" "$dockerfile" | sed -E 's/FROM ruby:([0-9]+\.[0-9]+).*/\1/'
-            ;;
-        shell)
-            # Read from VERSION file (bash version)
-            if [ -f "$version_file" ]; then
-                cat "$version_file"
-            else
-                log_error "VERSION file not found for shell image"
-                exit 1
-            fi
-            ;;
-        *)
-            log_error "Unknown language: $language"
-            exit 1
-            ;;
-    esac
+    if [ -f "$version_file" ]; then
+        cat "$version_file"
+    else
+        log_error "VERSION file not found for $language image at $version_file"
+        exit 1
+    fi
 }
 
 # Validate language argument
