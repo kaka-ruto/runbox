@@ -201,11 +201,63 @@ class Introspector:
         
         return packages
     
+    # Alpine system packages to exclude (these come pre-installed and aren't useful to report)
+    ALPINE_SYSTEM_PACKAGES = {
+        # Core Alpine packages
+        "alpine-baselayout", "alpine-baselayout-data", "alpine-keys", "apk-tools",
+        "busybox", "busybox-binsh", "libc-utils", "musl", "musl-utils",
+        # SSL/crypto libraries
+        "ca-certificates", "ca-certificates-bundle", "libcrypto3", "libssl3", 
+        "ssl_client", "openssl",
+        # System utilities  
+        "scanelf", "zlib", "libgcc", "libstdc++",
+        # Network infrastructure (dependencies, not tools)
+        "libidn2", "libunistring", "nghttp2-libs", "libpsl", "libcurl",
+        "c-ares", "brotli-libs",
+        # iptables infrastructure
+        "iptables", "libmnl", "libnftnl", "libnetfilter_conntrack", "libnl3",
+        # DNS tools dependencies
+        "bind-libs", "bind-tools", "fstrm", "json-c", "krb5-libs", 
+        "libcom_err", "libverto", "protobuf-c", "keyutils-libs",
+        # Other system libs
+        "libedit", "ncurses-libs", "ncurses-terminfo-base", "readline",
+        "oniguruma",  # jq dependency
+    }
+
     async def _get_shell_tools(self, container: Container) -> dict[str, str]:
-        """Get versions of common shell tools."""
+        """
+        Get installed packages via apk (Alpine).
+        
+        This returns only user-installed tools (curl, jq, bats, etc.),
+        filtering out system dependencies. The list updates dynamically
+        when new packages are installed via apk.
+        """
+        result = await self._exec_in_container(
+            container, 
+            ["sh", "-c", "apk list --installed 2>/dev/null"]
+        )
+        
+        if result["exit_code"] == 0 and result["stdout"].strip():
+            packages = {}
+            # Parse apk output: "curl-8.5.0-r0 x86_64 {curl} (MIT)"
+            for line in result["stdout"].strip().split("\n"):
+                if not line.strip():
+                    continue
+                # Extract package name and version
+                match = re.match(r"^([a-zA-Z0-9_-]+)-(\d+\.\d+(?:\.\d+)?)", line.strip())
+                if match:
+                    name = match.group(1)
+                    version = match.group(2)
+                    # Only include packages NOT in the system exclusion list
+                    if name not in self.ALPINE_SYSTEM_PACKAGES:
+                        packages[name] = version
+            return packages
+        
+        # Fallback: check individual tools (for non-Alpine systems like Debian)
         tools = {
             "curl": ["curl", "--version"],
             "jq": ["jq", "--version"],
+            "bats": ["bats", "--version"],
         }
         
         packages = {}
@@ -213,7 +265,6 @@ class Introspector:
             result = await self._exec_in_container(container, cmd)
             if result["exit_code"] == 0:
                 output = result["stdout"].strip()
-                # Extract version from first line
                 first_line = output.split("\n")[0]
                 match = re.search(r"(\d+\.\d+(?:\.\d+)?)", first_line)
                 if match:
