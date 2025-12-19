@@ -68,7 +68,7 @@ class TestRunRequestValidation:
         request = RunRequest(
             container_id="runbox-test-python",
             files=[FileInput(path="main.py", content="print('hi')")],
-            entrypoint="main.py",
+            run_command="python main.py",
         )
         
         assert request.container_id == "runbox-test-python"
@@ -79,7 +79,7 @@ class TestRunRequestValidation:
         with pytest.raises(ValidationError):
             RunRequest(
                 files=[FileInput(path="main.py", content="print('hi')")],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
     
     def test_requires_files(self):
@@ -88,7 +88,7 @@ class TestRunRequestValidation:
             RunRequest(
                 container_id="runbox-test-python",
                 files=[],
-                entrypoint="main.py",
+                run_command="python main.py",
             )
     
     def test_timeout_must_be_positive(self):
@@ -97,7 +97,7 @@ class TestRunRequestValidation:
             RunRequest(
                 container_id="runbox-test-python",
                 files=[FileInput(path="main.py", content="print('hi')")],
-                entrypoint="main.py",
+                run_command="python main.py",
                 timeout=-1,
             )
     
@@ -107,7 +107,7 @@ class TestRunRequestValidation:
             RunRequest(
                 container_id="runbox-test-python",
                 files=[FileInput(path="main.py", content="print('hi')")],
-                entrypoint="main.py",
+                run_command="python main.py",
                 timeout=500,
             )
     
@@ -116,7 +116,7 @@ class TestRunRequestValidation:
         request = RunRequest(
             container_id="runbox-test-python",
             files=[FileInput(path="main.py", content="print('hi')")],
-            entrypoint="main.py",
+            run_command="python main.py",
         )
         
         assert request.env == {}
