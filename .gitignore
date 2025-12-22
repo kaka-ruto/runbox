@@ -52,3 +52,6 @@ runbox.yml
 .DS_Store
 Thumbs.db
 
+
+# Logs
+runbox.log

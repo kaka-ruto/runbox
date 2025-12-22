@@ -144,7 +144,11 @@ class CodeRunner:
         language = self._extract_language_from_container_name(container_id)
         
         try:
-            # Install new dependencies if provided
+            # 1. Clean working directory FIRST to ensure a fresh slate for the user's code.
+            # We must do this before installing dependencies so they don't get wiped.
+            await self._clean_workdir(container)
+
+            # 2. Install new dependencies if provided
             packages = None
             if new_dependencies:
                 await self._install_dependencies(container, language, new_dependencies)
@@ -154,14 +158,10 @@ class CodeRunner:
                 env_snapshot = await introspector.get_environment_snapshot(container, language)
                 packages = env_snapshot.packages
 
-            
-            # Clean working directory
-            await self._clean_workdir(container)
-            
-            # Write files to container
+            # 3. Write files to container
             await self._write_files(container, files)
             
-            # Run code
+            # 4. Run code
             start_time = time.monotonic()
             result = await self._run_code(
                 container=container,
@@ -203,10 +203,13 @@ class CodeRunner:
         workdir = self.settings.containers.work_dir
         
         loop = asyncio.get_event_loop()
+        # Clean up everything except hidden package management directores
+        cleanup_cmd = f"find {workdir} -maxdepth 1 ! -path {workdir} ! -name '.local' ! -name '.gems' ! -name '.cache' -exec rm -rf {{}} +"
+        
         await loop.run_in_executor(
             None,
             lambda: container.exec_run(
-                ["sh", "-c", f"rm -rf {workdir}/* {workdir}/.*"],
+                ["sh", "-c", cleanup_cmd],
                 user="root",
             ),
         )
@@ -313,7 +316,7 @@ class CodeRunner:
                 cmd,
                 environment=env,
                 workdir=workdir,
-                user="nobody",  # Run as unprivileged user
+                user="runner",  # Use the dedicated unprivileged runner user who owns /app
             )
         
         exec_instance = await loop.run_in_executor(None, create_exec)
