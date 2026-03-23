@@ -80,7 +80,9 @@ get_all_languages() {
 get_ghcr_image_name() {
     local language=$1
     local version=$2
-    echo "ghcr.io/anywaye/runbox/$language:$version"
+    local registry="${REGISTRY:-ghcr.io}"
+    local owner="${OWNER:-kaka-ruto}"
+    echo "${registry}/${owner}/runbox/${language}:${version}"
 }
 
 # Check if Docker is running
