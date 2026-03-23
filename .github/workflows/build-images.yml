@@ -4,7 +4,7 @@ on:
   # Trigger on Dockerfile changes
   push:
     branches:
-      - main
+      - master
     paths:
       - 'images/*/Dockerfile'
       - 'images/shell/VERSION'
@@ -25,7 +25,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: anywaye
+  OWNER: ${{ github.repository_owner }}
 
 jobs:
   build-and-push:

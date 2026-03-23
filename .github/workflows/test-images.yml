@@ -11,7 +11,7 @@ on:
   # Run on pushes to main
   push:
     branches:
-      - main
+      - master
     paths:
       - 'images/**'
       - 'scripts/**'
