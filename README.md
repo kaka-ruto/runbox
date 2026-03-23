@@ -26,7 +26,7 @@ A fast, secure, and simple API for running code in isolated containers.
 
 ```bash
 # Clone the repository
-git clone https://github.com/anywaye/runbox.git
+git clone https://github.com/kaka-ruto/runbox.git
 cd runbox
 
 # Create and activate virtual environment
@@ -55,7 +55,7 @@ pytest tests/ --cov=src/runbox --cov-report=html
 ### Using Docker Compose
 
 ```bash
-git clone https://github.com/anywaye/runbox.git
+git clone https://github.com/kaka-ruto/runbox.git
 cd runbox
 cp runbox.example.yml runbox.yml
 docker-compose up
@@ -172,8 +172,8 @@ Response includes updated package list:
 
 ## Client Libraries
 
-- [runbox-rb](https://github.com/anywaye/runbox-rb) - Ruby client
-- [runbox-py](https://github.com/anywaye/runbox-py) - Python client
+- [runbox-rb](https://github.com/kaka-ruto/runbox-rb) - Ruby client
+- [runbox-py](https://github.com/kaka-ruto/runbox-py) - Python client
 
 ## License
 
