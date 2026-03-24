@@ -123,8 +123,8 @@ Removes images and prunes dangling images.
 
 This will:
 - Build multi-platform images (linux/amd64 and linux/arm64)
-- Tag with version: `ghcr.io/anywaye/runbox-<language>:<version>`
-- Tag with SHA: `ghcr.io/anywaye/runbox-<language>:<version>-sha-<commit>`
+- Tag with version: `ghcr.io/kaka-ruto/runbox-<language>:<version>`
+- Tag with SHA: `ghcr.io/kaka-ruto/runbox-<language>:<version>-sha-<commit>`
 - Push both tags to GHCR
 
 ### GitHub Actions

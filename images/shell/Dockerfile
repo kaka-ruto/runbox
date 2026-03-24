@@ -3,7 +3,7 @@
 
 FROM alpine:3.19
 
-LABEL org.opencontainers.image.source="https://github.com/anywaye/runbox"
+LABEL org.opencontainers.image.source="https://github.com/kaka-ruto/runbox"
 LABEL org.opencontainers.image.description="Runbox Shell execution environment"
 LABEL org.opencontainers.image.version="0.1.0"
 

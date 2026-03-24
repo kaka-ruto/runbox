@@ -12,7 +12,7 @@ Get Runbox running in 5 minutes.
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/anywaye/runbox.git
+git clone https://github.com/kaka-ruto/runbox.git
 cd runbox
 ```
 

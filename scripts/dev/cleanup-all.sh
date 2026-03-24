@@ -19,8 +19,8 @@ check_docker
 
 log_info "Cleaning up all runbox images..."
 
-# Remove all ghcr.io/anywaye/runbox/* images
-IMAGES=$(docker images --filter "reference=ghcr.io/anywaye/runbox/*" -q)
+# Remove all ghcr.io/kaka-ruto/runbox/* images
+IMAGES=$(docker images --filter "reference=ghcr.io/kaka-ruto/runbox/*" -q)
 if [ -n "$IMAGES" ]; then
     echo "$IMAGES" | xargs docker rmi -f 2>/dev/null || true
     log_success "Removed all runbox images"

@@ -97,15 +97,15 @@ class Settings(BaseSettings):
         if "languages" not in config_data:
             config_data["languages"] = {
                 "python": {
-                    "image": "ghcr.io/anywaye/runbox/python:3.11",
+                    "image": "ghcr.io/kaka-ruto/runbox/python:3.11",
                     "entrypoint_cmd": "python",
                 },
                 "ruby": {
-                    "image": "ghcr.io/anywaye/runbox/ruby:3.2",
+                    "image": "ghcr.io/kaka-ruto/runbox/ruby:3.2",
                     "entrypoint_cmd": "ruby",
                 },
                 "shell": {
-                    "image": "ghcr.io/anywaye/runbox/shell:5.2",
+                    "image": "ghcr.io/kaka-ruto/runbox/shell:5.2",
                     "entrypoint_cmd": "bash",
                 },
             }

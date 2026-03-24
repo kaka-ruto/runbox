@@ -26,17 +26,17 @@ limits:
   output_max: 65536 # bytes (64KB)
 
 # Supported languages and their Docker images
-# Local builds create both runbox/python:3.11 and ghcr.io/anywaye/runbox/python:3.11
+# Local builds create both runbox/python:3.11 and ghcr.io/kaka-ruto/runbox/python:3.11
 # Production pulls from GHCR if not available locally
 languages:
   python:
-    image: "ghcr.io/anywaye/runbox/python:3.11"
+    image: "ghcr.io/kaka-ruto/runbox/python:3.11"
     entrypoint_cmd: "python"
   ruby:
-    image: "ghcr.io/anywaye/runbox/ruby:3.2"
+    image: "ghcr.io/kaka-ruto/runbox/ruby:3.2"
     entrypoint_cmd: "ruby"
   shell:
-    image: "ghcr.io/anywaye/runbox/shell:5.2"
+    image: "ghcr.io/kaka-ruto/runbox/shell:5.2"
     entrypoint_cmd: "bash"
 
 # Network policy
